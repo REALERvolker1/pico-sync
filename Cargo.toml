@@ -1,9 +1,9 @@
 [package]
-name = "rp-pico-mutex"
+name = "rp-pico-sync"
 version = "0.1.0"
 edition = "2024"
 authors = ["vlk"]
-description = "An efficient spinlock-backed mutex implementation for rp2040 and rp235x"
+description = "An efficient spinlock-backed mutex implementation for rp2040 and rp235x, as well as some synchronization helper types"
 keywords = ["raspberry-pi", "embedded", "synchronization"]
 
 [dependencies]
