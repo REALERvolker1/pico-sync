@@ -1,3 +1,5 @@
+//! A hardware spinlock-backed mutex
+
 use {
     crate::hal::sio::{Spinlock, SpinlockValid},
     ::core::{

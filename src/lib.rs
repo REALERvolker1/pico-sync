@@ -1,4 +1,7 @@
+//! Synchronization primitives for Raspberry Pi Silicon
+
 #![no_std]
+#![forbid(missing_docs)]
 
 #[cfg(feature = "rp235x-hal")]
 pub(crate) use rp235x_hal as hal;
@@ -17,4 +20,4 @@ pub(crate) mod sealed_trait {
     pub trait Sealed {}
 }
 
-pub use mutex::SpinlockMutex;
+pub use crate::mutex::SpinlockMutex;
