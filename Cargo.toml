@@ -7,11 +7,15 @@ description = "An efficient spinlock-backed mutex implementation for rp2040 and 
 keywords = ["raspberry-pi", "embedded", "synchronization"]
 
 [dependencies]
-rp2040-hal = { version = ">=0.11.0,<=999.999.999", default-features = false, optional = true }
-rp235x-hal = { version = ">=0.3.0,<=999.999.999", default-features = false, optional = true }
+portable-atomic = { version = "*", optional = true }
+rp2040-hal = { version = "*", default-features = false, optional = true }
+rp235x-hal = { version = "*", default-features = false, optional = true }
 
 
 [features]
-default = ["rp235x-hal"]
+default = ["safe-core-guard-access", "rp235x-hal"]
+core-guards = ["dep:portable-atomic"]
+# Adds a `take()` method to core-guards so they can be acquired with safe code.
+safe-core-guard-access = ["core-guards"]
 rp235x-hal = ["dep:rp235x-hal"]
 rp2040-hal = ["dep:rp2040-hal"]

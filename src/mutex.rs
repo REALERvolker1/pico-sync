@@ -1,5 +1,5 @@
 use {
-    crate::dep_select::*,
+    crate::hal::sio::{Spinlock, SpinlockValid},
     ::core::{
         cell::UnsafeCell,
         marker::PhantomData,
