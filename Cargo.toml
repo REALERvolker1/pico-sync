@@ -13,7 +13,7 @@ rp235x-hal = { version = "*", default-features = false, optional = true }
 
 
 [features]
-default = ["single-core-guard-access", "isr-guards", "rp2040-hal"]
+default = ["single-core-guard-access", "isr-guards"]
 # Guard helper types for enforcing ownership of static mutable data
 core-guards = []
 # Guard helper types for enforcing ownership of static mutable data
