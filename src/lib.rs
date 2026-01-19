@@ -10,14 +10,14 @@ pub(crate) use rp2040_hal as hal;
 
 #[cfg(not(any(feature = "rp2040-hal", feature = "rp235x-hal")))]
 compile_error!("You must choose a HAL implementation!");
-
 #[cfg(feature = "core-guards")]
-pub mod cores;
+pub mod core_guard;
+
+#[cfg(feature = "isr-guards")]
+pub mod isr_guard;
 
 pub mod mutex;
 
 pub(crate) mod sealed_trait {
     pub trait Sealed {}
 }
-
-pub use crate::mutex::SpinlockMutex;

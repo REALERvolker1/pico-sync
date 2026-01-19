@@ -15,19 +15,19 @@ use ::portable_atomic::{AtomicBool, Ordering};
 /// A lock-free data structure used for static mutable state on a single core.
 /// # Safety
 /// This is unsound to access from a non-owning core.
-pub struct LocalCell<T, C>
+pub struct LocalOnceCell<T, C>
 where
-    C: SingleCore,
+    C: CoreToken,
 {
     data: OnceCell<T>,
     _marker: PhantomData<C>,
 }
 // SAFETY: It is impossible to access this cell from other cores without unsafe code.
-unsafe impl<T, C> Send for LocalCell<T, C> where C: SingleCore {}
-unsafe impl<T, C> Sync for LocalCell<T, C> where C: SingleCore {}
-impl<T, C> LocalCell<T, C>
+unsafe impl<T, C> Send for LocalOnceCell<T, C> where C: CoreToken {}
+unsafe impl<T, C> Sync for LocalOnceCell<T, C> where C: CoreToken {}
+impl<T, C> LocalOnceCell<T, C>
 where
-    C: SingleCore,
+    C: CoreToken,
 {
     /// Create a new uninitialized cell
     pub const fn new() -> Self {
@@ -95,22 +95,38 @@ macro_rules! singlecore {
         }
 
         impl Sealed for $struct {}
-        impl SingleCore for $struct {
+        impl CoreToken for $struct {
             const ID: CoreId = $id;
+        }
+        impl $struct {
+            /// Acquire the current core's token.
+            /// # Safety
+            /// As these token types are relied upon for sync-safety,
+            /// calling this from a different core can lead to memory safety
+            /// violations.
+            /// # Panics
+            /// When debug assertions are enabled, this will panic if
+            /// called from a different core.
             unsafe fn steal() -> Self {
                 debug_assert_eq!(Sio::core(), Self::ID);
                 Self {
                     _marker: PhantomData,
                 }
             }
-        }
-        impl $struct {
             /// Try to take the ownership token.
             /// If it is already claimed, this function will return `None`.
             #[cfg(feature = "single-core-guard-access")]
             #[inline(always)]
             pub fn try_claim() -> Option<Self> {
-                try_claim_inner(&$statevar)
+                if $statevar
+                    .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+                    .is_ok()
+                {
+                    // SAFETY: This is guarded with a cmpxchg
+                    Some(unsafe { Self::steal() })
+                } else {
+                    None
+                }
             }
             // implementation note: This is called something different because
             // user code safety assumptions should be entirely different when toggling this feature on/off.
@@ -118,47 +134,22 @@ macro_rules! singlecore {
             /// Try to create a new ownership token. Succeeds if called on the right core.
             #[cfg(not(feature = "single-core-guard-access"))]
             pub fn try_new() -> Option<Self> {
-                try_new_inner()
+                if Sio::core() == Self::ID {
+                    // SAFETY: This branch can only occur when run on
+                    // the correct core.
+                    Some(unsafe { Self::steal() })
+                } else {
+                    None
+                }
             }
         }
     };
 }
-/// helper function so we avoid messing with macros
-#[cfg(feature = "single-core-guard-access")]
-fn try_claim_inner<T: SingleCore>(b: &AtomicBool) -> Option<T> {
-    if b.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-        .is_ok()
-    {
-        // SAFETY: This is guarded with a cmpxchg
-        Some(unsafe { T::steal() })
-    } else {
-        None
-    }
-}
-#[cfg(not(feature = "single-core-guard-access"))]
-fn try_new_inner<T: SingleCore>() -> Option<T> {
-    if Sio::core() == T::ID {
-        // SAFETY: This branch can only occur when run on
-        // the correct core.
-        Some(unsafe { T::steal() })
-    } else {
-        None
-    }
-}
 
 /// A marker trait that allows type-generic ownership tokens.
-pub trait SingleCore: Sealed {
+pub trait CoreToken: Sealed {
     /// The ID of the current core
     const ID: CoreId;
-    /// Acquire the current core's token.
-    /// # Safety
-    /// As these token types are relied upon for sync-safety,
-    /// calling this from a different core can lead to memory safety
-    /// violations.
-    /// # Panics
-    /// When debug assertions are enabled, this will panic if
-    /// called from a different core.
-    unsafe fn steal() -> Self;
 }
 
 singlecore!(Core0Token, CoreId::Core0, IS_CORE0_TAKEN);

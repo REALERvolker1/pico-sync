@@ -13,10 +13,13 @@ rp235x-hal = { version = "*", default-features = false, optional = true }
 
 
 [features]
-default = ["core-guards", "rp235x-hal"]
+default = ["single-core-guard-access", "isr-guards", "rp2040-hal"]
+# Guard helper types for enforcing ownership of static mutable data
 core-guards = []
-# Adds a `take()` method to core-guards so they can only
-# be acquired with safe code once.
+# Guard helper types for enforcing ownership of static mutable data
+isr-guards = []
+# Changes several functions in the LocalOnceCell struct to safe functions,
+# because only one instance of the guard can be created
 single-core-guard-access = ["core-guards", "dep:portable-atomic"]
 rp235x-hal = ["dep:rp235x-hal"]
 rp2040-hal = ["dep:rp2040-hal"]
